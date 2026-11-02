@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D GORE spiel</title>
+    <link rel="icon" href="data:," />
+    <style>
+      :root {
+        --bg-1: #04070d;
+        --bg-2: #0b1320;
+        --hud: rgba(6, 10, 15, 0.78);
+        --panel: rgba(17, 24, 35, 0.9);
+        --line: rgba(145, 173, 255, 0.42);
+        --text: #edf4ff;
+        --muted: #8ba0c2;
+        --danger: #ff5a6a;
+        --warn: #ffb34d;
+        --good: #73f8af;
+        --shadow: rgba(0, 0, 0, 0.35);
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at top, rgba(67, 103, 160, 0.28), transparent 40%),
+          linear-gradient(160deg, var(--bg-1), var(--bg-2));
+        color: var(--text);
+        font-family: Inter, "Segoe UI", sans-serif;
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+      }
+
+      #game-shell {
+        position: relative;
+        width: min(100vw, 1200px);
+        height: min(100vh, 800px);
+        border: 1px solid var(--line);
+        background: rgba(5, 7, 14, 0.78);
+        box-shadow: 0 25px 80px rgba(0,0,0,0.56);
+        overflow: hidden;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(180deg, #09131d 0%, #050b12 100%);
+      }
+
+      .hud {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .topbar {
+        position: absolute;
+        top: 18px;
+        left: 18px;
+        right: 18px;
+        display: flex;
+        gap: 12px;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 2;
+      }
+
+      .panel {
+        background: var(--hud);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 15px 35px rgba(0,0,0,0.2);
+      }
+
+      .stats {
+        display: flex;
+        gap: 10px;
+        padding: 10px 14px;
+      }
+
+      .stat {
+        min-width: 88px;
+      }
+
+      .stat-label {
+        display: block;
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .stat-value {
+        display: block;
+        margin-top: 4px;
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      #level-badge {
+        padding: 10px 14px;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--good);
+        text-shadow: 0 0 16px rgba(115, 248, 175, 0.6);
+      }
+
+      .bottom-bar {
+        position: absolute;
+        left: 18px;
+        right: 18px;
+        bottom: 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 12px;
+        z-index: 2;
+      }
+
+      .controls {
+        display: flex;
+        gap: 8px;
+        padding: 9px 12px;
+      }
+
+      .control-key {
+        min-width: 32px;
+        text-align: center;
+        padding: 7px 10px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: var(--text);
+        font-weight: 700;
+        font-size: 12px;
+      }
+
+      .mission {
+        max-width: 360px;
+        padding: 12px 16px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .mission strong {
+        color: var(--text);
+      }
+
+      .overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 4;
+        background: rgba(2, 4, 9, 0.54);
+        backdrop-filter: blur(6px);
+        transition: opacity 180ms ease;
+      }
+
+      .overlay.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .modal {
+        width: min(92vw, 540px);
+        padding: 28px 22px 22px;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: rgba(12, 16, 22, 0.92);
+        box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+      }
+
+      .modal h1 {
+        margin: 0 0 10px;
+        font-size: clamp(2.1rem, 3vw, 3.1rem);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .modal h1.accent { color: var(--warn); }
+      .modal h1.good { color: var(--good); }
+
+      .modal p {
+        margin: 0 0 18px;
+        color: var(--muted);
+        line-height: 1.6;
+        font-size: 1rem;
+      }
+
+      button {
+        border: 0;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #f2994a, #d76f3a);
+        color: #1b120d;
+        font: inherit;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        padding: 12px 18px;
+        cursor: pointer;
+        box-shadow: 0 16px 30px rgba(227, 110, 51, 0.4);
+      }
+
+      button:active { transform: translateY(1px); }
+
+      @media (max-width: 740px) {
+        .topbar, .bottom-bar {
+          left: 10px;
+          right: 10px;
+          gap: 8px;
+        }
+
+        .stats {
+          scale: 0.9;
+          transform-origin: left center;
+        }
+
+        .mission {
+          max-width: 220px;
+          padding: 10px 12px;
+          font-size: 11px;
+        }
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/index-YE_VIW_3.js"></script>
+  </head>
+  <body>
+    <div id="game-shell">
+      <canvas id="game-canvas"></canvas>
+
+      <div class="hud">
+        <div class="topbar">
+          <div class="panel stats">
+            <div class="stat">
+              <span class="stat-label">Health</span>
+              <span id="health" class="stat-value">100</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Score</span>
+              <span id="score" class="stat-value">0</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Combo</span>
+              <span id="combo" class="stat-value">x1</span>
+            </div>
+          </div>
+          <div id="level-badge" class="panel">Sector 01</div>
+        </div>
+
+        <div class="bottom-bar">
+          <div class="panel controls">
+            <div class="control-key">W</div>
+            <div class="control-key">A</div>
+            <div class="control-key">S</div>
+            <div class="control-key">D</div>
+            <div class="control-key">Jump</div>
+          </div>
+          <div class="panel mission">
+            <strong>Mission:</strong> close in to strike plagues, harvest cells, and survive all five sectors.
+          </div>
+        </div>
+      </div>
+
+      <div id="overlay" class="overlay">
+        <div class="modal">
+          <h1 id="overlay-title" class="accent">3D GORE spiel</h1>
+          <p id="overlay-text">WASD to move. Space to leap. Eliminate all red plagues to clear the zone.</p>
+          <button id="start-button">Start Run</button>
+        </div>
+      </div>
+    </div>
+
+  </body>
+</html>
