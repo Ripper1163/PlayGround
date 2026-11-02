@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zombie Siege 3D</title>
+    <style>
+      :root {
+        --bg: #07110d;
+        --panel: rgba(10, 18, 15, 0.8);
+        --panel-border: rgba(155, 195, 170, 0.2);
+        --accent: #84f5a7;
+        --accent-2: #ffb454;
+        --text: #edf7ef;
+        --muted: #a3c3b1;
+        --danger: #ff5d5d;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: radial-gradient(circle at top, #0d1d17, var(--bg) 55%);
+        color: var(--text);
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        overflow: hidden;
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #app {
+        position: relative;
+        width: min(100vw, 1280px);
+        height: min(100vh, 920px);
+        overflow: hidden;
+        border: 1px solid var(--panel-border);
+        box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4);
+        background: #050b09;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .hud {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .topbar {
+        position: absolute;
+        top: 18px;
+        left: 18px;
+        right: 18px;
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: start;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 12px;
+        backdrop-filter: blur(6px);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+      }
+
+      .stats {
+        padding: 10px 14px;
+        min-width: 220px;
+      }
+
+      .stats-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .stats-row + .stats-row { margin-top: 6px; }
+
+      .label { color: var(--muted); }
+      .value { color: var(--text); }
+      .value.accent { color: var(--accent); }
+      .value.warning { color: var(--accent-2); }
+
+      .weapon-panel {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        min-width: 220px;
+      }
+
+      .weapon-name {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+        margin-bottom: 5px;
+      }
+
+      .weapon-ammo {
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1;
+      }
+
+      .health {
+        position: absolute;
+        left: 18px;
+        bottom: 18px;
+        width: min(26vw, 340px);
+        background: rgba(10,18,15,0.75);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .health-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px 6px;
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .health-bar {
+        position: relative;
+        height: 18px;
+        background: rgba(255,255,255,0.08);
+      }
+
+      .health-fill {
+        height: 100%;
+        width: 100%;
+        background: linear-gradient(90deg, #ff5d5d, #ffbf69, #84f5a7);
+        box-shadow: 0 0 18px rgba(132,245,167,0.6);
+        transition: width 0.15s ease;
+      }
+
+      .crosshair {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 18px;
+        height: 18px;
+        transform: translate(-50%, -50%);
+        opacity: 0.88;
+      }
+
+      .crosshair::before,
+      .crosshair::after {
+        content: "";
+        position: absolute;
+        background: rgba(255,255,255,0.9);
+        box-shadow: 0 0 8px rgba(255,255,255,0.6);
+      }
+
+      .crosshair::before {
+        left: 50%;
+        top: 0;
+        width: 2px;
+        height: 100%;
+        transform: translateX(-50%);
+      }
+
+      .crosshair::after {
+        top: 50%;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        transform: translateY(-50%);
+      }
+
+      .message {
+        position: absolute;
+        left: 50%;
+        top: 16%;
+        transform: translateX(-50%);
+        padding: 13px 18px;
+        border-radius: 12px;
+        background: rgba(4, 12, 9, 0.8);
+        border: 1px solid rgba(132,245,167,0.25);
+        color: var(--text);
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+
+      .message.visible { opacity: 1; }
+
+      @media (max-width: 700px) {
+        .stats {
+          min-width: 0;
+          padding: 9px 10px;
+        }
+
+        .weapon-panel {
+          padding: 9px 10px;
+          min-width: 0;
+        }
+
+        .topbar {
+          gap: 8px;
+        }
+
+        .health {
+          width: min(52vw, 260px);
+        }
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-DVauJBya.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game"></canvas>
+      <div class="hud">
+        <div class="topbar">
+          <div id="stats" class="panel stats">
+            <div class="stats-row"><span class="label">Wave</span><span id="wave" class="value accent">1</span></div>
+            <div class="stats-row"><span class="label">Kills</span><span id="kills" class="value">0</span></div>
+            <div class="stats-row"><span class="label">Zombies</span><span id="zombies" class="value warning">0</span></div>
+          </div>
+          <div id="weaponPanel" class="panel weapon-panel">
+            <div>
+              <div class="weapon-name">Weapon</div>
+              <div id="weapon" class="weapon-ammo">Rifle</div>
+            </div>
+            <div id="ammo" class="weapon-ammo">30/30</div>
+          </div>
+        </div>
+
+        <div id="message" class="message">Wave 1</div>
+        <div class="crosshair" aria-hidden="true"></div>
+
+        <div class="health">
+          <div class="health-header">
+            <span>Health</span>
+            <span id="healthText">100%</span>
+          </div>
+          <div class="health-bar"><div id="healthFill" class="health-fill"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </body>
+</html>
